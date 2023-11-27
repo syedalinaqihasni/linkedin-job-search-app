@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import axios from 'axios';
 import TextField from '@mui/material/TextField';
 import Switch from '@mui/material/Switch';
@@ -19,7 +19,11 @@ import { LocalizationProvider, MobileDatePicker } from '@mui/lab';
 const CompanyForm = () => {
   const [jwtToken, setJwtToken] = React.useState('eyJhbGciOiJFZERTQSIsImtpZCI6Ijc1MTQxYjcyLTFhZmUtMzRjYS0yZDYzLTI5NmE5NDYzZWI2ZSJ9.eyJhdWQiOiJlc3Bhcmtjb25zdWx0YW50cyIsImV4cCI6MTczMjQwNDUzOSwiaWF0IjoxNzAwODQ3NTg3LCJpc3MiOiJodHRwczovL29wcy5jb3Jlc2lnbmFsLmNvbTo4MzAwL3YxL2lkZW50aXR5L29pZGMiLCJuYW1lc3BhY2UiOiJyb290IiwicHJlZmVycmVkX3VzZXJuYW1lIjoiZXNwYXJrY29uc3VsdGFudHMiLCJzdWIiOiJmYTBjNGM5Yy1jMjFjLWZmZGYtYzBiOS00OGFlZDVhZjljMTYiLCJ1c2VyaW5mbyI6eyJzY29wZXMiOiJjZGFwaSJ9fQ.GhoFPK64GLU54fLg5C7pBWCQUkKmNLS4Y5qoTWq3A7ssbDz_S6l_DRSk6QIDH4Dojrw-e5B-FSOSxMSS9Ez2AA');
   const [searchResults, setSearchResults] = React.useState([]);
-  const [collectResults, setCollectResults] = React.useState([]);
+  const [creditsRemaining, setCreditsRemaining] = React.useState([]);
+    const [collectResults, setCollectResults] = React.useState([]);
+    
+  const [selectedCountries, setSelectedCountries] = useState([]);
+  const [selectedTitles, setSelectedTitles] = useState([]);
   const [searchPayload, setSearchPayload] = React.useState({
     created_at_gte: null,
     application_active: false,
@@ -28,25 +32,32 @@ const CompanyForm = () => {
     title: '',
   });
 
-  const handleSearch = async () => {
-    try {
-      console.log('Searching...');
-      const response = await axios.post(
-        'https://api.coresignal.com/cdapi/v1/linkedin/job/search/filter',
-        searchPayload,
-        {
-          headers: {
-            Authorization: `Bearer ${jwtToken}`,
-          },
-        }
-      );
+ const handleSearch = async () => {
+  try {
+    console.log('Searching...');
+    const response = await axios.post(
+      'https://api.coresignal.com/cdapi/v1/linkedin/job/search/filter',
+      searchPayload,
+      {
+        headers: {
+          Authorization: `Bearer ${jwtToken}`,
+        },
+      }
+    );
 
-      setSearchResults(response.data.items || []);
-      console.log('Search results:', response.data.items);
-    } catch (error) {
-      console.error('Error searching jobs:', error);
-    }
-  };
+    setSearchResults(response.data.items || []);
+    console.log('Search results:', response.data.items);
+
+    // Accessing response headers
+    const creditsRemaining = response.headers['x-credits-remaining'];
+    setCreditsRemaining(creditsRemaining);
+    console.log('credits-remaining:', creditsRemaining);
+  } catch (error) {
+    console.error('Error searching jobs:', error);
+  }
+};
+
+    
 
   const handleCollect = async () => {
     try {
@@ -86,6 +97,7 @@ const CompanyForm = () => {
   };
 
   const handleCountryChange = (event, value) => {
+    setSelectedCountries(value);
     setSearchPayload((prevPayload) => ({
       ...prevPayload,
       country: value ? `(${value.join(') OR (')})` : '',
@@ -93,13 +105,15 @@ const CompanyForm = () => {
   };
 
   const handleTitleChange = (event, value) => {
+    setSelectedTitles(value);
     setSearchPayload((prevPayload) => ({
       ...prevPayload,
       title: value ? `(${value.join(') OR (')})` : '',
     }));
   };
   return (
-    <Box>
+      <Box> 
+          <Typography>Reamining Credit: {creditsRemaining?creditsRemaining:0}</Typography>
       <LocalizationProvider >
         <MobileDatePicker
           label="Created At (gte)"
@@ -135,6 +149,7 @@ const CompanyForm = () => {
         multiple
         id="country-select"
         options={['United States', 'United Kingdom']}
+        value={selectedCountries}
         onChange={handleCountryChange}
         renderInput={(params) => (
           <TextField {...params} label="Country" placeholder="Select countries" />
@@ -151,6 +166,7 @@ const CompanyForm = () => {
           'Embedded Software Developer',
           'Associate Software Developer',
         ]}
+        value={selectedTitles}
         onChange={handleTitleChange}
         renderInput={(params) => (
           <TextField {...params} label="Title" placeholder="Select titles" />
